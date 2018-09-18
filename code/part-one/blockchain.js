@@ -23,7 +23,12 @@ class Transaction {
    */
   constructor(privateKey, recipient, amount) {
     // Enter your solution here
-
+    // console.log(`private key: ${privateKey}`);
+    this.source = signing.getPublicKey(privateKey);
+    this.recipient = recipient;
+    this.amount = amount;
+    // not sure why the message being signed needs all three components (that is different from how it works in signing.js)
+    this.signature = signing.sign(privateKey, (this.source + this.recipient + this.amount));
   }
 }
 
@@ -45,7 +50,11 @@ class Block {
    */
   constructor(transactions, previousHash) {
     // Your code here
-
+    this.transactions = transactions;
+    this.previousHash = previousHash;
+    this.nonce = 7;
+    // don't forget to digest
+    this.hash = createHash('sha256').update(JSON.stringify(this.transactions) + this.previousHash + this.nonce).digest('hex');
   }
 
   /**
@@ -59,7 +68,8 @@ class Block {
    */
   calculateHash(nonce) {
     // Your code here
-
+    this.nonce = nonce;
+    this.hash = createHash('sha256').update(JSON.stringify(this.transactions) + this.previousHash + this.nonce).digest('hex');
   }
 }
 
@@ -79,7 +89,8 @@ class Blockchain {
    */
   constructor() {
     // Your code here
-
+    let genesis = new Block([], null);
+    this.blocks = [genesis];
   }
 
   /**
@@ -87,7 +98,7 @@ class Blockchain {
    */
   getHeadBlock() {
     // Your code here
-
+    return this.blocks[this.blocks.length - 1];
   }
 
   /**
@@ -95,8 +106,13 @@ class Blockchain {
    * adding it to the chain.
    */
   addBlock(transactions) {
+    let block = new Block(transactions, this.blocks[this.blocks.length - 1].hash);
+    this.blocks.push(block);
     // Your code here
-
+    // let block = {transactions, previousHash: this.blocks[this.blocks.length - 1].previousHash};
+    // this.blocks.push(block);
+    // console.log(`length: ${this.blocks.length}`);
+    // console.log(`genesis: ${this.blocks[0].}`)
   }
 
   /**
@@ -110,7 +126,23 @@ class Blockchain {
    */
   getBalance(publicKey) {
     // Your code here
-
+    let receivedTotal = 0;
+    for (let block of this.blocks) {
+      for (let transaction of block.transactions) {
+        if (transaction.recipient === publicKey) {
+          receivedTotal += transaction.amount;
+        }
+      }
+    }
+    let sentTotal = 0;
+    for (let block of this.blocks) {
+      for (let transaction of block.transactions) {
+        if (transaction.source === publicKey) {
+          sentTotal += transaction.amount;
+        }
+      }
+    }
+    return receivedTotal - sentTotal;
   }
 }
 
