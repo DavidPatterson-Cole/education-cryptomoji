@@ -15,7 +15,15 @@ const { randomBytes, createHash } = require('crypto');
  */
 const createPrivateKey = () => {
   // Enter your solution here
-
+  let privKey;
+  do {
+    privKey = randomBytes(32);
+  } while (!secp256k1.privateKeyVerify(privKey));
+  // crypto.randomBytes(64, (err, buf) => {
+  //   if (err) throw err;
+  //   console.log(`${buf.length} bytes of random data: ${buf.toString('hex')}`);
+  // });
+  return privKey.toString('hex');
 };
 
 /**
@@ -33,7 +41,9 @@ const createPrivateKey = () => {
  */
 const getPublicKey = privateKey => {
   // Your code here
-
+  // console.log(`public key: ${secp256k1.publicKeyCreate(Buffer.from(privateKey, 'hex')).toString('hex')}`);
+  // console.log(`private key: ${privateKey}`);
+  return secp256k1.publicKeyCreate(Buffer.from(privateKey, 'hex')).toString('hex');
 };
 
 /**
@@ -51,7 +61,13 @@ const getPublicKey = privateKey => {
  */
 const sign = (privateKey, message) => {
   // Your code here
-
+  const hash = createHash('sha256');
+  hash.update(message);
+  // console.log(`hash: ${hash}`);
+  // console.log(`hash: ${Buffer.from(hash.digest('hex'), 'hex')}`);
+  // console.log(`private key: ${Buffer.from(privateKey, 'hex')}`);
+  // console.log(`hash digest: ${hash.digest('hex')}`);
+  return secp256k1.sign(Buffer.from(hash.digest('hex'), 'hex'), Buffer.from(privateKey, 'hex')).signature.toString('hex');
 };
 
 /**
@@ -65,8 +81,15 @@ const sign = (privateKey, message) => {
  *   // false
  */
 const verify = (publicKey, message, signature) => {
-  // Your code here
+  // apparently necessary to rehash
+  const hash = createHash('sha256');
+  hash.update(message);
 
+  // console.log(Buffer.isBuffer(Buffer.from(message, 'utf8')));
+  // console.log(`message: ${Buffer.from(message, 'utf8')}`);
+  // console.log(`signature: ${Buffer.from(signature, 'hex')}`);
+  // console.log(`public key: ${Buffer.from(publicKey, 'hex')}`);
+  return secp256k1.verify(Buffer.from(hash.digest('hex'), 'hex'), Buffer.from(signature, 'hex'), Buffer.from(publicKey, 'hex'));
 };
 
 module.exports = {
