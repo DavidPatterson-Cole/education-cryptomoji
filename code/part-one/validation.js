@@ -12,7 +12,14 @@ const signing = require('./signing');
  */
 const isValidTransaction = transaction => {
   // Enter your solution here
-
+  // let verify = signing.verify(transaction.source, transaction.amount, )
+  if (transaction.amount < 0) {
+    return false;
+  }
+  if (!signing.verify(transaction.source, transaction.source + transaction.recipient + transaction.amount, transaction.signature)) {
+    return false;
+  }
+  return true;
 };
 
 /**
@@ -23,7 +30,18 @@ const isValidTransaction = transaction => {
  */
 const isValidBlock = block => {
   // Your code here
-
+  for (let transaction of block.transactions) {
+    if (!isValidTransaction(transaction)) {
+      return false;
+    }
+  }
+  // Not sure why I can't access block.calculateHash - so have to use not DRY approach with createHash
+  // console.log(`hash: ${block.hash}`);
+  // console.log(`check: ${createHash('sha256').update(JSON.stringify(block.transactions) + block.previousHash + block.nonce).digest('hex')}`);
+  if (block.hash !== createHash('sha256').update(JSON.stringify(block.transactions) + block.previousHash + block.nonce).digest('hex')) {
+    return false;
+  }
+  return true;
 };
 
 /**
@@ -38,7 +56,25 @@ const isValidBlock = block => {
  */
 const isValidChain = blockchain => {
   // Your code here
-
+  if (blockchain.blocks[0].previousHash !== null) {
+    return false;
+  }
+  for (let i = 1; i < blockchain.blocks.length; i++) {
+    if (blockchain.blocks[i].previousHash !== blockchain.blocks[i - 1].hash) {
+      return false;
+    }
+  }
+  for (let block of blockchain.blocks) {
+    if (!isValidBlock(block)) {
+      return false;
+    }
+    for (let transaction of block.transactions) {
+      if (!isValidTransaction(transaction)) {
+        return false;
+      }
+    }
+  }
+  return true;
 };
 
 /**
@@ -48,7 +84,7 @@ const isValidChain = blockchain => {
  */
 const breakChain = blockchain => {
   // Your code here
-
+  blockchain.blocks[blockchain.blocks.length - 1].transactions[0].amount = 10000;
 };
 
 module.exports = {
