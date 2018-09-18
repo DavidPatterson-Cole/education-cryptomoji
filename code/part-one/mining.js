@@ -19,7 +19,10 @@ class MineableTransaction {
    */
   constructor(privateKey, recipient = null, amount) {
     // Enter your solution here
-
+    this.source = recipient ? signing.getPublicKey(privateKey) : null;
+    this.recipient = recipient ? recipient : signing.getPublicKey(privateKey);
+    this.amount = amount;
+    this.signature = signing.sign(privateKey, (this.source + this.recipient + this.amount));
   }
 }
 
@@ -34,8 +37,12 @@ class MineableBlock extends Block {
    * become valid after it is mined.
    */
   constructor(transactions, previousHash) {
+    super(transactions, previousHash);
     // Your code here
-
+    this.hash = null;
+    this.nonce = null;
+    this.transactions = transactions;
+    this.previousHash = previousHash;
   }
 }
 
@@ -63,7 +70,12 @@ class MineableChain extends Blockchain {
    */
   constructor() {
     // Your code here
-
+    super();
+    const genesis = new MineableBlock([], null);
+    this.blocks = [genesis];
+    this.difficulty = 2;
+    this.reward = 5;
+    this.pendingTranscations = [];
   }
 
   /**
@@ -79,7 +91,7 @@ class MineableChain extends Blockchain {
    */
   addTransaction(transaction) {
     // Your code here
-
+    this.pendingTranscations.push(transaction);
   }
 
   /**
@@ -98,7 +110,16 @@ class MineableChain extends Blockchain {
    */
   mine(privateKey) {
     // Your code here
-
+    const rewardTranscation = new MineableTransaction(privateKey, null, this.reward);
+    this.pendingTranscations.push(rewardTranscation);
+    const block = new MineableBlock(this.pendingTranscations, this.blocks[this.blocks.length - 1].hash);
+    block.nonce = 0;
+    do {
+      block.nonce += 1;
+      block.hash = createHash('sha256').update(JSON.stringify(block.transactions) + block.previousHash + block.nonce).digest('hex');
+    } while (block.hash.substring(0, 2) !== '00');
+    this.blocks.push(block);
+    this.pendingTranscations = [];
   }
 }
 
@@ -119,7 +140,38 @@ class MineableChain extends Blockchain {
  */
 const isValidMineableChain = blockchain => {
   // Your code here
-
+  for (let i = 1; i < blockchain.blocks.length; i++) {
+    if (blockchain.blocks[i].hash.substring(0,2) !== '00') {
+      return false;
+    }
+  }
+  for (let block of blockchain.blocks) {
+    // console.log(block);
+    let rewardCount = 0;
+    for (let transaction of block.transactions) {
+      if (transaction.source === null) {
+        // if (transaction.amount !== block.reward) {
+        //   return false;
+        // }
+        rewardCount += 1;
+      }
+    }
+    // console.log(rewardCount);
+    if (rewardCount > 1) {
+      return false;
+    }
+  }
+  for (let block of blockchain.blocks) {
+    for (let transaction of block.transactions) {
+      // console.log(transaction);
+      if (transaction.source) {
+        if (blockchain.getBalance(transaction.source) < 0) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 };
 
 module.exports = {
